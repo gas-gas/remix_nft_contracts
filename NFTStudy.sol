@@ -4,11 +4,12 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import "./ERC721A.sol";
 import "./Ownable.sol";
+import "./DefaultOperatorFilterer.sol";
 
-
-contract NFTStudy is ERC721A, Ownable {
+contract NFTStudy is ERC721A, Ownable, DefaultOperatorFilterer {
     // NFTの情報先
     string baseURI;
+
     string public baseExtension = ".json";
     // NFTの金額
     uint public cost = 0.01 ether;
@@ -19,8 +20,8 @@ contract NFTStudy is ERC721A, Ownable {
     bool public paused = true;
 
     // コレクション名: ETH MASKS , トークン名: EM
-    constructor() ERC721A ("ETH MASKS", "EM") {
-        setBaseURI("");
+    constructor() ERC721A ('ETH MASKS v6.2', 'EM') {
+        setBaseURI('https://bafybeielj5lxgtoo5il6vztqfbxikn4l22tshsm5dbrh5gfy3ys763prja.ipfs.nftstorage.link/');
     }
 
     /**
@@ -84,6 +85,69 @@ contract NFTStudy is ERC721A, Ownable {
 
     function setMaxSupply(uint _newMaxSupply) public onlyOwner {
         maxSupply = _newMaxSupply;
+    }
+
+    function withdraw() public payable onlyOwner {
+        (bool os, ) = payable(owner()).call{value: address(this).balance}("");
+        require(os);
+    }
+ 
+    function _startTokenId() internal view virtual override returns(uint) {
+        return 1;
+    }
+ 
+    function _baseURI() internal view virtual override returns (string memory){
+        return baseURI;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Transfer functions
+    ///////////////////////////////////////////////////////////////////////////
+    function transferFrom(
+        address from,
+        address to,
+        uint256 tokenId
+    ) public override payable onlyAllowedOperator(from) {
+        super.transferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 tokenId
+    ) public override payable onlyAllowedOperator(from) {
+        super.safeTransferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 tokenId,
+        bytes memory data
+    ) public override payable onlyAllowedOperator(from) {
+        super.safeTransferFrom(from, to, tokenId, data);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Approve functions
+    ///////////////////////////////////////////////////////////////////////////
+    function setApprovalForAll(address operator, bool approved)
+        public
+        virtual
+        override
+        onlyAllowedOperatorApproval(operator)
+    {
+        super.setApprovalForAll(operator, approved);
+    }
+
+    function approve(address operator, uint256 tokenId)
+        public
+        virtual
+        override
+        payable
+        onlyAllowedOperatorApproval(operator)
+    {
+        super.approve(operator, tokenId);
     }
 }
 
